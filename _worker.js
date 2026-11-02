@@ -60,7 +60,9 @@ export default {
 
 		const isSubscriptionRequest = !!token && [mytoken, fakeToken, 访客订阅].includes(token);
 		if (!isAdmin && !isSubscriptionRequest) {
-			if (request.method === 'POST') return new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="CF-Workers-SUB Admin"', 'Cache-Control': 'no-store' } });
+			if (request.method === 'POST' || (request.method === 'GET' && url.pathname === '/' && !url.search)) {
+				return new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="CF-Workers-SUB Admin", charset="UTF-8"', 'Cache-Control': 'no-store' } });
+			}
 			if (TG == 1 && url.pathname !== "/" && url.pathname !== "/favicon.ico") await sendMessage(`#异常访问 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgent}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname}</tg-spoiler>`);
 			if (env.URL302) return Response.redirect(env.URL302, 302);
 			else if (env.URL) return await proxyURL(env.URL, url);
