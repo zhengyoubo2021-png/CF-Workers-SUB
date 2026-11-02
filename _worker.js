@@ -1,7 +1,7 @@
 
 // 部署完成后在网址后面加上这个，获取自建节点和机场聚合节点，/?token=auto或/auto或
 
-let mytoken = 'auto';
+let mytoken = ''; // Configure a strong SUB_TOKEN secret; no default token.
 let guestToken = ''; //可以随便取，或者uuid生成，https://1024tools.com/uuid
 let BotToken = ''; //可以为空，或者@BotFather中输入/start，/newbot，并关注机器人
 let ChatID = ''; //可以为空，或者@userinfobot中获取，/start
@@ -27,7 +27,7 @@ export default {
 		const userAgent = userAgentHeader ? userAgentHeader.toLowerCase() : "null";
 		const url = new URL(request.url);
 		const token = url.searchParams.get('token');
-		mytoken = env.TOKEN || mytoken;
+		mytoken = env.SUB_TOKEN || '';
 		BotToken = env.TGTOKEN || BotToken;
 		ChatID = env.TGID || ChatID;
 		TG = env.TG || TG;
@@ -44,10 +44,13 @@ export default {
 		const currentDate = new Date();
 		currentDate.setHours(0, 0, 0, 0);
 		const timeTemp = Math.ceil(currentDate.getTime() / 1000);
-		const fakeToken = await MD5MD5(`${mytoken}${timeTemp}`);
-		guestToken = env.GUESTTOKEN || env.GUEST || guestToken;
-		if (!guestToken) guestToken = await MD5MD5(mytoken);
+		if (mytoken.length < 32) {
+			return new Response('Missing/weak SUB_TOKEN: configure at least 32 random characters.', { status: 503, headers: { 'Cache-Control': 'no-store' } });
+		}
+		const fakeToken = await SHA256Hex(mytoken + timeTemp);
+		guestToken = env.GUEST_TOKEN || mytoken;
 		const 访客订阅 = guestToken;
+		const isAdmin = await isAdminRequest(request, env);
 		//console.log(`${fakeUserID}\n${fakeHostName}`); // 打印fakeID
 
 		let UD = Math.floor(((timestamp - Date.now()) / timestamp * total * 1099511627776) / 2);
@@ -55,8 +58,10 @@ export default {
 		let expire = Math.floor(timestamp / 1000);
 		SUBUpdateTime = env.SUBUPTIME || SUBUpdateTime;
 
-		if (!([mytoken, fakeToken, 访客订阅].includes(token) || url.pathname == ("/" + mytoken) || url.pathname.includes("/" + mytoken + "?"))) {
-			if (TG == 1 && url.pathname !== "/" && url.pathname !== "/favicon.ico") await sendMessage(`#异常访问 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgent}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname + url.search}</tg-spoiler>`);
+		const isSubscriptionRequest = ([mytoken, fakeToken, 访客订阅].includes(token) && !!token) || url.pathname === ("/" + mytoken);
+		if (!isAdmin && !isSubscriptionRequest) {
+			if (request.method === 'POST') return new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="CF-Workers-SUB Admin"', 'Cache-Control': 'no-store' } });
+			if (TG == 1 && url.pathname !== "/" && url.pathname !== "/favicon.ico") await sendMessage(`#异常访问 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgent}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname}</tg-spoiler>`);
 			if (env.URL302) return Response.redirect(env.URL302, 302);
 			else if (env.URL) return await proxyURL(env.URL, url);
 			else return new Response(await nginx(), {
@@ -68,8 +73,8 @@ export default {
 		} else {
 			if (env.KV) {
 				await 迁移地址列表(env, 'LINK.txt');
-				if (userAgent.includes('mozilla') && !url.search) {
-					await sendMessage(`#编辑订阅 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgentHeader}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname + url.search}</tg-spoiler>`);
+				if (isAdmin && userAgent.includes('mozilla') && !url.search) {
+					await sendMessage(`#编辑订阅 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgentHeader}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname}</tg-spoiler>`);
 					return await KV(request, env, 'LINK.txt', 访客订阅);
 				} else {
 					MainData = await env.KV.get('LINK.txt') || MainData;
@@ -90,7 +95,7 @@ export default {
 			}
 			MainData = 自建节点;
 			urls = await ADD(订阅链接);
-			await sendMessage(`#获取订阅 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgentHeader}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname + url.search}</tg-spoiler>`);
+			await sendMessage(`#获取订阅 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${userAgentHeader}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname}</tg-spoiler>`);
 
 			let 订阅格式 = 'base64';
 			if (!(userAgent.includes('null') || userAgent.includes('subconverter') || userAgent.includes('nekobox') || userAgent.includes(('CF-Workers-SUB').toLowerCase()))) {
@@ -108,7 +113,7 @@ export default {
 			}
 
 			let subConverterUrl;
-			let 订阅转换URL = `${url.origin}/${await MD5MD5(fakeToken)}?token=${fakeToken}`;
+			let 订阅转换URL = `${url.origin}/${await SHA256Hex(fakeToken)}?token=${fakeToken}`;
 			//console.log(订阅转换URL);
 			let req_data = MainData;
 
@@ -261,7 +266,7 @@ async function nginx() {
 async function sendMessage(type, ip, add_data = "") {
 	if (BotToken !== '' && ChatID !== '') {
 		let msg = "";
-		const response = await fetch(`http://ip-api.com/json/${ip}?lang=zh-CN`);
+		const response = await fetch(`https://ip-api.com/json/${ip}?lang=zh-CN`);
 		if (response.status == 200) {
 			const ipInfo = await response.json();
 			msg = `${type}\nIP: ${ip}\n国家: ${ipInfo.country}\n<tg-spoiler>城市: ${ipInfo.city}\n组织: ${ipInfo.org}\nASN: ${ipInfo.as}\n${add_data}`;
@@ -287,18 +292,28 @@ function base64Decode(str) {
 	return decoder.decode(bytes);
 }
 
-async function MD5MD5(text) {
-	const encoder = new TextEncoder();
+async function SHA256Hex(value) {
+	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+	return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+}
 
-	const firstPass = await crypto.subtle.digest('MD5', encoder.encode(text));
-	const firstPassArray = Array.from(new Uint8Array(firstPass));
-	const firstHex = firstPassArray.map(b => b.toString(16).padStart(2, '0')).join('');
+async function isAdminRequest(request, env) {
+	const expected = env.ADMIN_TOKEN || '';
+	if (expected.length < 32) return false;
+	const header = request.headers.get('Authorization') || '';
+	if (!header.startsWith('Basic ')) return false;
+	let decoded;
+	try { decoded = atob(header.slice(6)); } catch { return false; }
+	const split = decoded.indexOf(':');
+	if (split < 0 || decoded.slice(0, split) !== 'admin') return false;
+	return constantTimeEqual(decoded.slice(split + 1), expected);
+}
 
-	const secondPass = await crypto.subtle.digest('MD5', encoder.encode(firstHex.slice(7, 27)));
-	const secondPassArray = Array.from(new Uint8Array(secondPass));
-	const secondHex = secondPassArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-	return secondHex.toLowerCase();
+function constantTimeEqual(a, b) {
+	const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+	let diff = x.length ^ y.length;
+	for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] || 0) ^ (y[i] || 0);
+	return diff === 0;
 }
 
 function clashFix(content) {
@@ -332,7 +347,7 @@ async function proxyURL(proxyURL, url) {
 
 	// 解析目标 URL
 	let parsedURL = new URL(fullURL);
-	console.log(parsedURL);
+	// Upstream URL omitted from logs to avoid leaking subscription credentials.
 	// 提取并可能修改 URL 组件
 	let URLProtocol = parsedURL.protocol.slice(0, -1) || 'https';
 	let URLHostname = parsedURL.hostname;
@@ -408,7 +423,7 @@ async function getSUB(api, request, 追加UA, userAgentHeader) {
 			};
 		});
 
-		console.log(modifiedResponses); // 输出修改后的响应数组
+		// Omit upstream subscription URLs from logs.
 
 		for (const response of modifiedResponses) {
 			// 检查响应状态是否为'fulfilled'
@@ -446,8 +461,13 @@ async function getSUB(api, request, 追加UA, userAgentHeader) {
 
 async function getUrl(request, targetUrl, 追加UA, userAgentHeader) {
 	// 设置自定义 User-Agent
-	const newHeaders = new Headers(request.headers);
-	newHeaders.set("User-Agent", `${atob('djJyYXlOLzYuNDU=')} cmliu/CF-Workers-SUB ${追加UA}(${userAgentHeader})`);
+	// Do not forward admin Authorization, cookies, or CF Access credentials upstream.
+	const newHeaders = new Headers();
+	newHeaders.set("User-Agent", `${atob('djJyYXlOLzYuNDU=')} cmliu/CF-Workers-SUB ${追加UA}(${userAgentHeader || ''})`);
+	for (const name of ['Accept', 'Accept-Language']) {
+		const value = request.headers.get(name);
+		if (value) newHeaders.set(name, value);
+	}
 
 	// 构建新的请求对象
 	const modifiedRequest = new Request(targetUrl, {
@@ -455,21 +475,8 @@ async function getUrl(request, targetUrl, 追加UA, userAgentHeader) {
 		headers: newHeaders,
 		body: request.method === "GET" ? null : request.body,
 		redirect: "follow",
-		cf: {
-			// 忽略SSL证书验证
-			insecureSkipVerify: true,
-			// 允许自签名证书
-			allowUntrusted: true,
-			// 禁用证书验证
-			validateCertificate: false
-		}
 	});
 
-	// 输出请求的详细信息
-	console.log(`请求URL: ${targetUrl}`);
-	console.log(`请求头: ${JSON.stringify([...newHeaders])}`);
-	console.log(`请求方法: ${request.method}`);
-	console.log(`请求体: ${request.method === "GET" ? null : request.body}`);
 
 	// 发送请求并返回响应
 	return fetch(modifiedRequest);
@@ -499,8 +506,9 @@ async function 迁移地址列表(env, txt = 'ADD.txt') {
 async function KV(request, env, txt = 'ADD.txt', guest) {
 	const url = new URL(request.url);
 	try {
-		// POST请求处理
+		// Re-check admin auth at the storage boundary.
 		if (request.method === "POST") {
+			if (!(await isAdminRequest(request, env))) return new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="CF-Workers-SUB Admin"', 'Cache-Control': 'no-store' } });
 			if (!env.KV) return new Response("未绑定KV空间", { status: 400 });
 			try {
 				const content = await request.text();
@@ -816,7 +824,7 @@ async function KV(request, env, txt = 'ADD.txt', guest) {
 		`;
 
 		return new Response(html, {
-			headers: { "Content-Type": "text/html;charset=utf-8" }
+			headers: { "Content-Type": "text/html;charset=utf-8", "Cache-Control": "no-store, max-age=0", "Pragma": "no-cache", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" }
 		});
 	} catch (error) {
 		console.error('处理请求时发生错误:', error);
