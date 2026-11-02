@@ -47,7 +47,7 @@ export default {
 		if (mytoken.length < 32) {
 			return new Response('Missing/weak SUB_TOKEN: configure at least 32 random characters.', { status: 503, headers: { 'Cache-Control': 'no-store' } });
 		}
-		const fakeToken = await SHA256Hex(mytoken + timeTemp);
+		const fakeToken = await HMACSHA256Hex(mytoken, String(timeTemp));
 		guestToken = env.GUEST_TOKEN || mytoken;
 		const 访客订阅 = guestToken;
 		const isAdmin = await isAdminRequest(request, env);
@@ -113,7 +113,7 @@ export default {
 			}
 
 			let subConverterUrl;
-			let 订阅转换URL = `${url.origin}/${await SHA256Hex(fakeToken)}?token=${fakeToken}`;
+			let 订阅转换URL = `${url.origin}/${await HMACSHA256Hex(fakeToken, 'converter')}?token=${fakeToken}`;
 			//console.log(订阅转换URL);
 			let req_data = MainData;
 
@@ -188,6 +188,7 @@ export default {
 			// 构建响应头对象
 			const responseHeaders = {
 				"content-type": "text/plain; charset=utf-8",
+				"Cache-Control": "no-store",
 				"Profile-Update-Interval": `${SUBUpdateTime}`,
 				"Profile-web-page-url": request.url.includes('?') ? request.url.split('?')[0] : request.url,
 				//"Subscription-Userinfo": `upload=${UD}; download=${UD}; total=${total}; expire=${expire}`,
@@ -292,9 +293,10 @@ function base64Decode(str) {
 	return decoder.decode(bytes);
 }
 
-async function SHA256Hex(value) {
-	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-	return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+async function HMACSHA256Hex(secret, message) {
+	const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+	const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+	return Array.from(new Uint8Array(signature), b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function isAdminRequest(request, env) {
@@ -509,6 +511,7 @@ async function KV(request, env, txt = 'ADD.txt', guest) {
 		// Re-check admin auth at the storage boundary.
 		if (request.method === "POST") {
 			if (!(await isAdminRequest(request, env))) return new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Basic realm="CF-Workers-SUB Admin"', 'Cache-Control': 'no-store' } });
+			if (request.headers.get('Origin') !== url.origin) return new Response('Forbidden', { status: 403, headers: { 'Cache-Control': 'no-store' } });
 			if (!env.KV) return new Response("未绑定KV空间", { status: 400 });
 			try {
 				const content = await request.text();
