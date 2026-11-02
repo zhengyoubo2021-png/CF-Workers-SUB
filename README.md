@@ -41,10 +41,23 @@
      您分配到的域名是 `fuck.cloudns.biz`，则添加自定义域填入 `sub.fuck.cloudns.biz`即可；
    - 按照 Cloudflare 的要求将返回你的域名DNS服务商，添加 该自定义域 `sub`的 CNAME记录 `CF-Workers-SUB.pages.dev` 后，点击 `激活域`即可。
 
-### 3. 修改 快速订阅入口 ：
+### 3. 配置安全令牌与订阅入口
 
-  例如您的pages项目域名为：`sub.fuck.cloudns.biz`；
-   - 添加 `TOKEN` 变量，快速订阅访问入口，默认值为: `auto` ，获取订阅器默认节点订阅地址即 `/auto` ，例如 `https://sub.fuck.cloudns.biz/auto`
+部署后请在 Cloudflare Worker 的 **Settings → Variables and Secrets** 中添加以下 Secrets（不要写进代码或提交到 Git）：
+
+- `SUB_TOKEN`：至少 32 个随机字符的订阅主令牌。
+- `ADMIN_TOKEN`：至少 32 个随机字符的管理员密码；管理页面使用 HTTP Basic Auth，用户名固定为 `admin`。
+- `GUEST_TOKEN`：可选，单独设置访客订阅令牌；不设置时访客令牌与主订阅令牌相同。
+
+建议使用密码管理器生成两个互不相同的高强度随机值。订阅地址格式为：
+
+```url
+https://sub.example.workers.dev/?token=你的SUB_TOKEN
+https://sub.example.workers.dev/sub?token=你的SUB_TOKEN&clash
+https://sub.example.workers.dev/sub?token=你的SUB_TOKEN&singbox
+```
+
+旧版 `TOKEN`、`GUEST` 和 `/auto` 路径认证不再作为安全版本的认证来源。请在所有客户端中更新订阅链接。访问 Worker 根地址时，浏览器会要求输入用户名 `admin` 和 `ADMIN_TOKEN`，进入 KV 订阅编辑页面。
 
 ### 4. 添加你的节点和订阅链接：
    1. 绑定**变量名称**为`KV`的**KV命名空间**；
@@ -99,8 +112,9 @@
 ## 📋 变量说明
 | 变量名 | 示例 | 必填 | 备注 | 
 |-|-|-|-|
-| TOKEN | `auto` | ✅ | 汇聚订阅的订阅配置路径地址，例如：`/auto` | 
-| GUEST | `test` | ❌ | 汇聚订阅的访客订阅TOKEN，例如：`/sub?token=test` | 
+| SUB_TOKEN | 随机 32+ 字符 | ✅ | 主订阅令牌 Secret；订阅请求通过 `?token=` 传递 |
+| ADMIN_TOKEN | 随机 32+ 字符 | ✅ | 管理员 Basic Auth 密码 Secret；用户名固定为 `admin` |
+| GUEST_TOKEN | 随机 32+ 字符 | ❌ | 可选独立访客订阅令牌 Secret；未设置时与 SUB_TOKEN 相同 | 
 | LINK | `vless://b7a39...`,`vmess://ew0K...`,`https://sub...` | ❌ | 可同时放入多个节点链接与多个订阅链接，链接之间用换行做间隔（添加**KV命名空间**后，变量将不会使用）|
 | TGTOKEN | `6894123456:XXXXXXXXXX0qExVsBPUhHDAbXXXXXqWXgBA` | ❌ | 发送TG通知的机器人token | 
 | TGID | `6946912345` | ❌ | 接收TG通知的账户数字ID | 
