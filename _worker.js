@@ -610,22 +610,22 @@ async function KV(request, env, txt = 'ADD.txt', guest) {
 					Subscribe / sub 订阅地址, 点击链接自动 <strong>复制订阅链接</strong> 并 <strong>生成订阅二维码</strong> <br>
 					---------------------------------------------------------------<br>
 					自适应订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}','qrcode_0')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}','qrcode_0')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}</a><br>
 					<div id="qrcode_0" style="margin: 10px 10px 10px 10px;"></div>
 					Base64订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&b64','qrcode_1')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}?b64</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&b64','qrcode_1')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&b64</a><br>
 					<div id="qrcode_1" style="margin: 10px 10px 10px 10px;"></div>
 					clash订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&clash','qrcode_2')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}?clash</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&clash','qrcode_2')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&clash</a><br>
 					<div id="qrcode_2" style="margin: 10px 10px 10px 10px;"></div>
 					singbox订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&sb','qrcode_3')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}?sb</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&sb','qrcode_3')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&sb</a><br>
 					<div id="qrcode_3" style="margin: 10px 10px 10px 10px;"></div>
 					surge订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&surge','qrcode_4')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}?surge</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&surge','qrcode_4')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&surge</a><br>
 					<div id="qrcode_4" style="margin: 10px 10px 10px 10px;"></div>
 					loon订阅地址:<br>
-					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&loon','qrcode_5')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/${mytoken}?loon</a><br>
+					<a href="javascript:void(0)" onclick="copyToClipboard('https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&loon','qrcode_5')" style="color:blue;text-decoration:underline;cursor:pointer;">https://${url.hostname}/?token=${encodeURIComponent(mytoken)}&loon</a><br>
 					<div id="qrcode_5" style="margin: 10px 10px 10px 10px;"></div>
 					&nbsp;&nbsp;<strong><a href="javascript:void(0);" id="noticeToggle" onclick="toggleNotice()">查看访客订阅∨</a></strong><br>
 					<div id="noticeContent" class="notice-content" style="display: none;">
